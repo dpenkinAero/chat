@@ -1,51 +1,50 @@
-(function () {
-  window.chat24_token = "e60db27908b5744a25a1e706acb9daff";
-  window.chat24_url = "https://livechatv2.chat2desk.com";
-  window.chat24_socket_url = "wss://livechatv2.chat2desk.com/widget_ws_new";
-  window.chat24_static_files_domain = "https://storage.chat2desk.com/";
-  window.lang = "ru";
-  function ensureChat24Application() {
-    if (window.__chat2deskChat24ApplicationLoading) return;
-    window.__chat2deskChat24ApplicationLoading = true;
-    window
-      .fetch(window.chat24_url + "/packs/manifest.json?nocache=" + new Date().getTime())
-      .then(function (res) {
-        return res.json();
-      })
-      .then(function (data) {
-        var src = window.chat24_url + data["application.js"];
-        var existing = document.querySelector('script[data-chat24-application="true"]');
-        if (existing) return;
-        var chat24 = document.createElement("script");
-        chat24.type = "text/javascript";
-        chat24.async = true;
-        chat24.src = src;
-        chat24.setAttribute("data-chat24-application", "true");
-        document.body.appendChild(chat24);
-      })
-      .catch(function () {
-        window.__chat2deskChat24ApplicationLoading = false;
-      });
+window.chat24_token = "e60db27908b5744a25a1e706acb9daff";
+window.chat24_url = "https://livechatv2.chat2desk.com";
+window.chat24_socket_url = "wss://livechatv2.chat2desk.com/widget_ws_new";
+window.chat24_static_files_domain = "https://storage.chat2desk.com/";
+window.lang = "ru";
+function ensureChat24Application() {
+  if (window.__chat2deskChat24ApplicationLoading) {
+    return;
   }
-  function ensureChat24SupportThenApplication() {
-    var supportSrc = "https://livechatv2.chat2desk.com/packs/ie-11-support.js";
-    var existing = document.querySelector('script[data-chat24-ie-support="true"]');
+  window.__chat2deskChat24ApplicationLoading = true;
+  window.fetch("".concat(window.chat24_url, "/packs/manifest.json?nocache=").concat(new Date().getTime())).then(function (res) {
+    return res.json();
+  }).then(function (data) {
+    var src = "".concat(window.chat24_url).concat(data["application.js"]);
+    var existing = document.querySelector('script[data-chat24-application="true"]');
     if (existing) {
-      ensureChat24Application();
       return;
     }
-    var support = document.createElement("script");
-    support.type = "text/javascript";
-    support.async = true;
-    support.src = supportSrc;
-    support.setAttribute("data-chat24-ie-support", "true");
-    support.onload = ensureChat24Application;
-    support.onerror = ensureChat24Application;
-    document.head.appendChild(support);
+    var chat24 = document.createElement("script");
+    chat24.type = "text/javascript";
+    chat24.async = true;
+    chat24.src = src;
+    chat24.setAttribute("data-chat24-application", "true");
+    document.body.appendChild(chat24);
+  }).catch(function () {
+    window.__chat2deskChat24ApplicationLoading = false;
+  });
+}
+function ensureChat24SupportThenApplication() {
+  var supportSrc = "https://livechatv2.chat2desk.com/packs/ie-11-support.js";
+  var existing = document.querySelector('script[data-chat24-ie-support="true"]');
+  if (existing) {
+    ensureChat24Application();
+    return;
   }
-  ensureChat24SupportThenApplication();
-})();
+  var support = document.createElement("script");
+  support.type = "text/javascript";
+  support.async = true;
+  support.src = supportSrc;
+  support.setAttribute("data-chat24-ie-support", "true");
+  support.onload = ensureChat24Application;
+  support.onerror = ensureChat24Application;
+  document.head.appendChild(support);
+}
+ensureChat24SupportThenApplication();
 (function () {
+  /* Иконка с кнопки: Icon button.svg → data-url для фона startBtn внутри Shadow DOM */
   var MK_START_BTN_SVG =
     '<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">' +
     '<mask id="path-1-inside-1_mk" fill="white">' +
@@ -80,9 +79,9 @@
       "border: none !important;" +
       "border-radius: 8px !important;" +
       "background-color: transparent !important;" +
-      'background-image: url("' +
+      "background-image: url(\"" +
       MK_START_BTN_ICON_URL +
-      '") !important;' +
+      "\") !important;" +
       "background-repeat: no-repeat !important;" +
       "background-position: center !important;" +
       "background-size: 48px 48px !important;" +
@@ -122,7 +121,11 @@
       st.type = "text/css";
       shadowRoot.appendChild(st);
     }
-    st.textContent = css;
+    if (st.firstChild) {
+      st.replaceChild(document.createTextNode(css), st.firstChild);
+    } else {
+      st.appendChild(document.createTextNode(css));
+    }
   }
   function injectStartBtnThemeIntoShadow(shadowRoot) {
     if (!shadowRoot) return;
@@ -174,7 +177,8 @@
     ensureDocStartBtnFallbackStyle();
     function isStartBtnClick(evt) {
       var path = typeof evt.composedPath === "function" ? evt.composedPath() : [evt.target];
-      for (var i = 0; i < path.length; i++) {
+      var i;
+      for (i = 0; i < path.length; i++) {
         var n = path[i];
         if (n && n.nodeType === 1 && n.closest) {
           try {
@@ -186,7 +190,8 @@
     }
     function isCloseBtnClick(evt) {
       var path = typeof evt.composedPath === "function" ? evt.composedPath() : [evt.target];
-      for (var i = 0; i < path.length; i++) {
+      var i;
+      for (i = 0; i < path.length; i++) {
         var n = path[i];
         if (n && n.nodeType === 1 && n.closest) {
           try {
@@ -205,9 +210,8 @@
       if (!shadowRoot) return;
       var list = shadowRoot.querySelectorAll(".online-chat");
       var arr = Array.prototype.slice.call(list);
-      for (var i = 0; i < arr.length; i++) {
-        alignOnlineChat(arr[i]);
-      }
+      var i;
+      for (i = 0; i < arr.length; i++) alignOnlineChat(arr[i]);
       var el = shadowRoot.firstElementChild;
       while (el) {
         if (el.shadowRoot) alignOnlineChatsInShadow(el.shadowRoot);
@@ -217,9 +221,8 @@
     function applyRightAlignFromRoot(origin) {
       var inLight = document.querySelectorAll("#chat24-root .online-chat, #chat24-widget-root .online-chat");
       var light = Array.prototype.slice.call(inLight);
-      for (var j = 0; j < light.length; j++) {
-        alignOnlineChat(light[j]);
-      }
+      var j;
+      for (j = 0; j < light.length; j++) alignOnlineChat(light[j]);
       function walkAlign(node) {
         if (!node) return;
         if (node.shadowRoot) alignOnlineChatsInShadow(node.shadowRoot);
@@ -234,12 +237,8 @@
     function replaceNodeToClearListeners(domNode, force) {
       var parent = domNode.parentNode;
       if (!parent) return;
-      if (force && domNode.removeAttribute) {
-        domNode.removeAttribute("data-chat24-unhooked");
-      }
-      if (!force && domNode.getAttribute && domNode.getAttribute("data-chat24-unhooked") === "1") {
-        return;
-      }
+      if (force && domNode.removeAttribute) domNode.removeAttribute("data-chat24-unhooked");
+      if (!force && domNode.getAttribute && domNode.getAttribute("data-chat24-unhooked") === "1") return;
       var clone = domNode.cloneNode(true);
       clone.setAttribute("data-chat24-unhooked", "1");
       parent.replaceChild(clone, domNode);
@@ -248,7 +247,8 @@
       if (!shadowRoot) return;
       var blocks = shadowRoot.querySelectorAll(".startBtn");
       var arr = Array.prototype.slice.call(blocks);
-      for (var i = 0; i < arr.length; i++) {
+      var i;
+      for (i = 0; i < arr.length; i++) {
         replaceNodeToClearListeners(arr[i], !!force);
       }
       var el = shadowRoot.firstElementChild;
@@ -260,9 +260,8 @@
     function stripStartBtnListenersFromRoot(origin, force) {
       var lightBtn = document.querySelectorAll("#chat24-root .startBtn, #chat24-widget-root .startBtn");
       var lb = Array.prototype.slice.call(lightBtn);
-      for (var k = 0; k < lb.length; k++) {
-        replaceNodeToClearListeners(lb[k], !!force);
-      }
+      var k;
+      for (k = 0; k < lb.length; k++) replaceNodeToClearListeners(lb[k], !!force);
       function walkStrip(node) {
         if (!node) return;
         if (node.shadowRoot) stripListenersOnStartBtnsInShadow(node.shadowRoot, force);
@@ -277,14 +276,14 @@
     function dedupeStartBtnsInShadow(shadowRoot) {
       if (!shadowRoot) return;
       var containers = shadowRoot.querySelectorAll(".chat24-container");
-      for (var ci = 0; ci < containers.length; ci++) {
+      var ci;
+      for (ci = 0; ci < containers.length; ci++) {
         var btns = containers[ci].querySelectorAll(".startBtn");
         if (btns.length <= 1) continue;
-        for (var i = 0; i < btns.length - 1; i++) {
+        var i;
+        for (i = 0; i < btns.length - 1; i++) {
           var extra = btns[i];
-          if (extra && extra.parentNode) {
-            extra.parentNode.removeChild(extra);
-          }
+          if (extra && extra.parentNode) extra.parentNode.removeChild(extra);
         }
       }
       var el = shadowRoot.firstElementChild;
@@ -309,7 +308,8 @@
       if (!shadowRoot) return;
       var blocks = shadowRoot.querySelectorAll(".startBtn");
       var arr = Array.prototype.slice.call(blocks);
-      for (var i = 0; i < arr.length; i++) {
+      var i;
+      for (i = 0; i < arr.length; i++) {
         if (!arr[i].getAttribute || arr[i].getAttribute("data-chat24-unhooked") !== "1") {
           replaceNodeToClearListeners(arr[i], false);
         }
@@ -340,7 +340,8 @@
         if (watchedShadowRoots.has(shadowRoot)) return false;
         watchedShadowRoots.add(shadowRoot);
       } else {
-        for (var w = 0; w < watchedShadowList.length; w++) {
+        var w;
+        for (w = 0; w < watchedShadowList.length; w++) {
           if (watchedShadowList[w] === shadowRoot) return false;
         }
         watchedShadowList.push(shadowRoot);
@@ -433,29 +434,25 @@
       }
       walk(origin);
     }
-    root.addEventListener(
-      "click",
-      function (evt) {
-        if (evt && evt.isTrusted === false) return;
-        if (isCloseBtnClick(evt)) {
-          setTimeout(function () {
-            applyCloseCollapseFromRoot(root);
-          }, 0);
-          return;
-        }
-        if (!isStartBtnClick(evt)) return;
+    root.addEventListener("click", function (evt) {
+      if (evt && evt.isTrusted === false) return;
+      if (isCloseBtnClick(evt)) {
         setTimeout(function () {
-          applyStartOpenFromRoot(root);
-          applyRightAlignFromRoot(root);
-          if (typeof window.requestAnimationFrame === "function") {
-            window.requestAnimationFrame(function () {
-              applyRightAlignFromRoot(root);
-            });
-          }
+          applyCloseCollapseFromRoot(root);
         }, 0);
-      },
-      true
-    );
+        return;
+      }
+      if (!isStartBtnClick(evt)) return;
+      setTimeout(function () {
+        applyStartOpenFromRoot(root);
+        applyRightAlignFromRoot(root);
+        if (typeof window.requestAnimationFrame === "function") {
+          window.requestAnimationFrame(function () {
+            applyRightAlignFromRoot(root);
+          });
+        }
+      }, 0);
+    }, true);
     var runAfterDomChange = debounce(function () {
       dedupeStartBtnsFromRoot(root);
       unhookNewStartBtnsFromRoot(root);
