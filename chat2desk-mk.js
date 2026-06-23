@@ -124,13 +124,33 @@
         "}"
       );
     }
+    function buildStartBtnDedupeCss(lightDomScope) {
+      var s = lightDomScope
+        ? "#chat24-root .chat24-container .startBtn:not([data-mk-primary-startbtn='1']), #chat24-widget-root .chat24-container .startBtn:not([data-mk-primary-startbtn='1'])"
+        : ".chat24-container .startBtn:not([data-mk-primary-startbtn='1'])";
+      return (
+        s +
+        "{" +
+        "display:none!important;" +
+        "visibility:hidden!important;" +
+        "pointer-events:none!important;" +
+        "opacity:0!important;" +
+        "position:absolute!important;" +
+        "width:0!important;" +
+        "height:0!important;" +
+        "overflow:hidden!important;" +
+        "clip:rect(0,0,0,0)!important;" +
+        "}"
+      );
+    }
     function injectOnlineChatThemeIntoShadow(shadowRoot) {
       if (!shadowRoot) return;
       var css =
         ".online-chat{border-radius:0!important;border:1px solid rgba(0,0,0,0.12)!important;box-shadow:none!important;}" +
         ".chat24-container .online-chat:not(.online-chat--collapsed)~div .startBtn," +
         ".chat24-container .online-chat:not(.online-chat--collapsed)~.startBtn{" +
-        "display:none!important;visibility:hidden!important;pointer-events:none!important;}";
+        "display:none!important;visibility:hidden!important;pointer-events:none!important;}" +
+        buildStartBtnDedupeCss(false);
       var st = shadowRoot.querySelector("#mk-chat24-online-chat-theme");
       if (!st) {
         st = document.createElement("style");
@@ -185,7 +205,9 @@
       var st = document.createElement("style");
       st.id = "mk-chat24-startbtn-global";
       st.type = "text/css";
-      st.appendChild(document.createTextNode(buildStartBtnThemeCss(true)));
+      st.appendChild(
+        document.createTextNode(buildStartBtnThemeCss(true) + buildStartBtnDedupeCss(true))
+      );
       (document.head || document.documentElement).appendChild(st);
     }
     function initChat24Skip() {
@@ -296,9 +318,11 @@
         var ci;
         for (ci = 0; ci < containers.length; ci++) {
           var btns = containers[ci].querySelectorAll(".startBtn");
+          if (btns.length === 0) continue;
+          btns[0].setAttribute("data-mk-primary-startbtn", "1");
           if (btns.length <= 1) continue;
           var i;
-          for (i = 0; i < btns.length - 1; i++) {
+          for (i = btns.length - 1; i >= 1; i--) {
             var extra = btns[i];
             if (extra && extra.parentNode) extra.parentNode.removeChild(extra);
           }
@@ -364,6 +388,7 @@
           watchedShadowList.push(shadowRoot);
         }
         var moSr = new MutationObserver(function () {
+          suppressDuplicateStartBtns();
           onMutation();
         });
         moSr.observe(shadowRoot, { childList: true, subtree: true });
@@ -470,32 +495,39 @@
           }
         }, 0);
       }, true);
-      var runAfterDomChange = debounce(function () {
+      function suppressDuplicateStartBtns() {
         dedupeStartBtnsFromRoot(root);
+      }
+      var runAfterDomChange = debounce(function () {
         unhookNewStartBtnsFromRoot(root);
         applyRightAlignFromRoot(root);
         applyStartBtnThemeFromRoot(root);
         attachShadowObserversUnder(root, function () {
+          suppressDuplicateStartBtns();
           runAfterDomChange();
         });
       }, 40);
       var runAfterResize = debounce(function () {
-        dedupeStartBtnsFromRoot(root);
+        suppressDuplicateStartBtns();
         stripStartBtnListenersFromRoot(root, true);
         applyRightAlignFromRoot(root);
         applyStartBtnThemeFromRoot(root);
         attachShadowObserversUnder(root, function () {
+          suppressDuplicateStartBtns();
           runAfterDomChange();
         });
       }, 120);
       applyRightAlignFromRoot(root);
+      suppressDuplicateStartBtns();
       stripStartBtnListenersFromRoot(root, true);
       applyStartBtnThemeFromRoot(root);
       attachShadowObserversUnder(root, function () {
+        suppressDuplicateStartBtns();
         runAfterDomChange();
       });
       if (typeof MutationObserver !== "undefined") {
         var alignObserver = new MutationObserver(function () {
+          suppressDuplicateStartBtns();
           runAfterDomChange();
         });
         alignObserver.observe(root, { childList: true, subtree: true });
