@@ -334,6 +334,17 @@
       'display:none!important;' +
       'visibility:hidden!important;' +
       'pointer-events:none!important;' +
+      '}' +
+      '.chat24-container .startBtn:not([data-mk-primary-startbtn="1"]){' +
+      'display:none!important;' +
+      'visibility:hidden!important;' +
+      'pointer-events:none!important;' +
+      'opacity:0!important;' +
+      'position:absolute!important;' +
+      'width:0!important;' +
+      'height:0!important;' +
+      'overflow:hidden!important;' +
+      'clip:rect(0,0,0,0)!important;' +
       '}'
     );
   }
@@ -439,6 +450,62 @@
         el.style.removeProperty('z-index');
       }
     } catch (e) {}
+  }
+
+  function dedupeStartBtnsInShadow(shadowRoot) {
+    if (!shadowRoot || !shadowRoot.querySelectorAll) {
+      return;
+    }
+    var containers = shadowRoot.querySelectorAll('.chat24-container');
+    var ci;
+    for (ci = 0; ci < containers.length; ci++) {
+      var btns = containers[ci].querySelectorAll('.startBtn');
+      if (btns.length === 0) {
+        continue;
+      }
+      btns[0].setAttribute('data-mk-primary-startbtn', '1');
+      if (btns.length <= 1) {
+        continue;
+      }
+      var i;
+      for (i = btns.length - 1; i >= 1; i--) {
+        if (btns[i] && btns[i].parentNode) {
+          btns[i].parentNode.removeChild(btns[i]);
+        }
+      }
+    }
+    var all = shadowRoot.querySelectorAll('*');
+    var j;
+    for (j = 0; j < all.length; j++) {
+      if (all[j].shadowRoot) {
+        dedupeStartBtnsInShadow(all[j].shadowRoot);
+      }
+    }
+  }
+
+  function dedupeStartBtnsFromRoot() {
+    var root = document.getElementById('chat24-root');
+    if (!root) {
+      return;
+    }
+    function walk(node) {
+      if (!node) {
+        return;
+      }
+      if (node.shadowRoot) {
+        dedupeStartBtnsInShadow(node.shadowRoot);
+      }
+      var c = node.firstElementChild;
+      while (c) {
+        walk(c);
+        c = c.nextElementSibling;
+      }
+    }
+    walk(root);
+    var wr = document.getElementById('chat24-widget-root');
+    if (wr) {
+      walk(wr);
+    }
   }
 
   function walkShadowApplyInline(shadowRoot) {
@@ -702,6 +769,7 @@
   }
 
   function applyAll() {
+    dedupeStartBtnsFromRoot();
     var list = findAllContainers();
     var i;
     for (i = 0; i < list.length; i++) {
@@ -783,6 +851,7 @@
       }
       attached.add(shadowRoot);
       var mo = new MutationObserver(function () {
+        dedupeStartBtnsFromRoot();
         flushMkMobileChatLayout();
         schedule();
       });
@@ -829,6 +898,7 @@
       if (!window.__chat2deskChat24ContainerMo && typeof MutationObserver !== 'undefined') {
         window.__chat2deskChat24ContainerMo = true;
         var mo = new MutationObserver(function () {
+          dedupeStartBtnsFromRoot();
           flushMkMobileChatLayout();
           schedule();
         });
