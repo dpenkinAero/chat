@@ -347,6 +347,31 @@
       'visibility:hidden!important;' +
       'pointer-events:none!important;' +
       '}' +
+      /* MK uses online-chat only — hide stock messengers + stray close controls */
+      '.chat24-container .messengers,' +
+      '.chat24-container .messenger,' +
+      '.chat24-container .messengers--vertical,' +
+      '.chat24-container .messengers--horizontal{' +
+      'display:none!important;' +
+      'visibility:hidden!important;' +
+      'pointer-events:none!important;' +
+      'height:0!important;' +
+      'width:0!important;' +
+      'overflow:hidden!important;' +
+      '}' +
+      '.chat24-container .widget > .close-btn,' +
+      '.chat24-container > .close-btn,' +
+      '.chat24-container .startBtn .close-btn,' +
+      '.chat24-container .widget .close-btn{' +
+      'display:none!important;' +
+      'visibility:hidden!important;' +
+      'pointer-events:none!important;' +
+      '}' +
+      '.chat24-container .online-chat .close-btn{' +
+      'display:flex!important;' +
+      'visibility:visible!important;' +
+      'pointer-events:auto!important;' +
+      '}' +
       '.chat24-container .startBtn:not([data-mk-primary-startbtn="1"]){' +
       'display:none!important;' +
       'visibility:hidden!important;' +
