@@ -451,6 +451,91 @@
         }
         walk(origin);
       }
+      function blurActiveInsideChat(origin) {
+        try {
+          var active = document.activeElement;
+          if (active && active !== document.body && typeof active.blur === "function") {
+            var tag = (active.tagName || "").toLowerCase();
+            if (tag === "input" || tag === "textarea" || active.isContentEditable) {
+              active.blur();
+            }
+          }
+        } catch (eBlur1) {}
+        function blurInShadow(shadowRoot) {
+          if (!shadowRoot) return;
+          try {
+            var focused = shadowRoot.activeElement;
+            if (focused && typeof focused.blur === "function") focused.blur();
+          } catch (eBlur2) {}
+          var inputs = shadowRoot.querySelectorAll("input, textarea, [contenteditable='true']");
+          var i;
+          for (i = 0; i < inputs.length; i++) {
+            try {
+              if (typeof inputs[i].blur === "function") inputs[i].blur();
+            } catch (eBlur3) {}
+          }
+          var el = shadowRoot.firstElementChild;
+          while (el) {
+            if (el.shadowRoot) blurInShadow(el.shadowRoot);
+            el = el.nextElementSibling;
+          }
+        }
+        function walk(node) {
+          if (!node) return;
+          if (node.shadowRoot) blurInShadow(node.shadowRoot);
+          var c = node.firstElementChild;
+          while (c) {
+            walk(c);
+            c = c.nextElementSibling;
+          }
+        }
+        walk(origin);
+        try {
+          if (document.body && typeof document.body.focus === "function") {
+            var prev = document.body.getAttribute("tabindex");
+            document.body.setAttribute("tabindex", "-1");
+            document.body.focus({ preventScroll: true });
+            if (prev === null) document.body.removeAttribute("tabindex");
+            else document.body.setAttribute("tabindex", prev);
+          }
+        } catch (eBlur4) {}
+      }
+      function refreshMobileChatLayout() {
+        if (typeof window.chat2deskMkApply === "function") {
+          try {
+            window.chat2deskMkApply();
+          } catch (eApply) {}
+        }
+        try {
+          window.dispatchEvent(new Event("resize"));
+        } catch (eResize) {}
+        if (typeof window.requestAnimationFrame === "function") {
+          window.requestAnimationFrame(function () {
+            if (typeof window.chat2deskMkApply === "function") {
+              try {
+                window.chat2deskMkApply();
+              } catch (eApply2) {}
+            }
+          });
+        }
+        setTimeout(function () {
+          if (typeof window.chat2deskMkApply === "function") {
+            try {
+              window.chat2deskMkApply();
+            } catch (eApply3) {}
+          }
+          try {
+            window.dispatchEvent(new Event("resize"));
+          } catch (eResize2) {}
+        }, 50);
+        setTimeout(function () {
+          if (typeof window.chat2deskMkApply === "function") {
+            try {
+              window.chat2deskMkApply();
+            } catch (eApply4) {}
+          }
+        }, 200);
+      }
       function processShadowCollapseChat(shadowRoot) {
         if (!shadowRoot) return;
         var onlineChat = shadowRoot.querySelector(".online-chat");
@@ -475,22 +560,30 @@
           }
         }
         walk(origin);
+        blurActiveInsideChat(origin);
       }
       root.addEventListener("click", function (evt) {
         if (evt && evt.isTrusted === false) return;
         if (isCloseBtnClick(evt)) {
+          blurActiveInsideChat(root);
           setTimeout(function () {
             applyCloseCollapseFromRoot(root);
+            blurActiveInsideChat(root);
           }, 0);
+          setTimeout(function () {
+            blurActiveInsideChat(root);
+          }, 80);
           return;
         }
         if (!isStartBtnClick(evt)) return;
         setTimeout(function () {
           applyStartOpenFromRoot(root);
           applyRightAlignFromRoot(root);
+          refreshMobileChatLayout();
           if (typeof window.requestAnimationFrame === "function") {
             window.requestAnimationFrame(function () {
               applyRightAlignFromRoot(root);
+              refreshMobileChatLayout();
             });
           }
         }, 0);
