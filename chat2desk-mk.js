@@ -63,7 +63,7 @@
 (function () {
     /* Иконка с кнопки: Icon button.svg → data-url для фона startBtn внутри Shadow DOM */
     /* Synced from scripts/github-config.json by Ship-GitHubChanges.ps1 */
-    var MK_WIDGET_VERSION = "1.0.0"; // mk-widget-version
+    var MK_WIDGET_VERSION = "1.0.1"; // mk-widget-version
     var MK_SHOW_WIDGET_VERSION = true; // mk-show-widget-version
     if (typeof window.mkChat24WidgetVersion === "string" && window.mkChat24WidgetVersion) {
       MK_WIDGET_VERSION = window.mkChat24WidgetVersion;
@@ -135,8 +135,8 @@
     }
     function buildStartBtnDedupeCss(lightDomScope) {
       var s = lightDomScope
-        ? "#chat24-root .chat24-container .startBtn:not([data-mk-primary-startbtn='1']), #chat24-widget-root .chat24-container .startBtn:not([data-mk-primary-startbtn='1'])"
-        : ".chat24-container .startBtn:not([data-mk-primary-startbtn='1'])";
+        ? "#chat24-root .chat24-container .startBtn[data-mk-duplicate-startbtn='1'], #chat24-widget-root .chat24-container .startBtn[data-mk-duplicate-startbtn='1']"
+        : ".chat24-container .startBtn[data-mk-duplicate-startbtn='1']";
       return (
         s +
         "{" +
@@ -329,11 +329,12 @@
           var btns = containers[ci].querySelectorAll(".startBtn");
           if (btns.length === 0) continue;
           btns[0].setAttribute("data-mk-primary-startbtn", "1");
+          btns[0].removeAttribute("data-mk-duplicate-startbtn");
           if (btns.length <= 1) continue;
           var i;
-          for (i = btns.length - 1; i >= 1; i--) {
-            var extra = btns[i];
-            if (extra && extra.parentNode) extra.parentNode.removeChild(extra);
+          for (i = 1; i < btns.length; i++) {
+            btns[i].setAttribute("data-mk-duplicate-startbtn", "1");
+            btns[i].removeAttribute("data-mk-primary-startbtn");
           }
         }
         var el = shadowRoot.firstElementChild;
@@ -653,14 +654,57 @@
         }
         walk(origin);
       }
+      function hideStockChromeInShadow(shadowRoot) {
+        if (!shadowRoot) return;
+        var nodes = shadowRoot.querySelectorAll(
+          ".messengers, .messenger, .messengers--vertical, .messengers--horizontal"
+        );
+        var i;
+        for (i = 0; i < nodes.length; i++) {
+          try {
+            nodes[i].style.setProperty("display", "none", "important");
+            nodes[i].style.setProperty("visibility", "hidden", "important");
+            nodes[i].style.setProperty("pointer-events", "none", "important");
+          } catch (eH) {}
+        }
+        var closes = shadowRoot.querySelectorAll(".close-btn");
+        for (i = 0; i < closes.length; i++) {
+          try {
+            if (closes[i].closest && closes[i].closest(".online-chat")) continue;
+            closes[i].style.setProperty("display", "none", "important");
+            closes[i].style.setProperty("visibility", "hidden", "important");
+            closes[i].style.setProperty("pointer-events", "none", "important");
+          } catch (eC) {}
+        }
+        var el = shadowRoot.firstElementChild;
+        while (el) {
+          if (el.shadowRoot) hideStockChromeInShadow(el.shadowRoot);
+          el = el.nextElementSibling;
+        }
+      }
+      function hideStockChromeFromRoot(origin) {
+        function walk(node) {
+          if (!node) return;
+          if (node.shadowRoot) hideStockChromeInShadow(node.shadowRoot);
+          var c = node.firstElementChild;
+          while (c) {
+            walk(c);
+            c = c.nextElementSibling;
+          }
+        }
+        walk(origin);
+      }
       function afterChatOpened(origin) {
         applyStartOpenFromRoot(origin);
+        hideStockChromeFromRoot(origin);
         applyRightAlignFromRoot(origin);
         ensureVersionBadgesFromRoot(origin);
         refreshMobileChatLayout();
         forceOpenChatsPaintFromRoot(origin);
         if (typeof window.requestAnimationFrame === "function") {
           window.requestAnimationFrame(function () {
+            applyStartOpenFromRoot(origin);
+            hideStockChromeFromRoot(origin);
             applyRightAlignFromRoot(origin);
             ensureVersionBadgesFromRoot(origin);
             refreshMobileChatLayout();
@@ -668,13 +712,15 @@
           });
         }
         setTimeout(function () {
+          applyStartOpenFromRoot(origin);
+          hideStockChromeFromRoot(origin);
           ensureVersionBadgesFromRoot(origin);
           refreshMobileChatLayout();
           forceOpenChatsPaintFromRoot(origin);
         }, 120);
         setTimeout(function () {
-          // Nudge Chat2Desk to paint message list after SPA navigation
           applyStartOpenFromRoot(origin);
+          hideStockChromeFromRoot(origin);
           refreshMobileChatLayout();
           forceOpenChatsPaintFromRoot(origin);
           try {
@@ -712,6 +758,18 @@
       root.addEventListener("click", function (evt) {
         if (evt && evt.isTrusted === false) return;
         if (isCloseBtnClick(evt)) {
+          // Only handle close inside online-chat (MK header close)
+          var path = typeof evt.composedPath === "function" ? evt.composedPath() : [evt.target];
+          var inOnlineChat = false;
+          var pi;
+          for (pi = 0; pi < path.length; pi++) {
+            var pn = path[pi];
+            if (pn && pn.classList && pn.classList.contains("online-chat")) {
+              inOnlineChat = true;
+              break;
+            }
+          }
+          if (!inOnlineChat) return;
           blurActiveInsideChat(root);
           setTimeout(function () {
             applyCloseCollapseFromRoot(root);
@@ -723,27 +781,27 @@
           return;
         }
         if (!isStartBtnClick(evt)) return;
-        // Block stock Chat2Desk open (messengers + default close), open online-chat ourselves
-        try {
-          evt.preventDefault();
-          evt.stopPropagation();
-          if (typeof evt.stopImmediatePropagation === "function") evt.stopImmediatePropagation();
-        } catch (eStop) {}
+        // Let Chat2Desk open natively (needed for messages), then polish MK UI
         setTimeout(function () {
           afterChatOpened(root);
         }, 0);
         setTimeout(function () {
           afterChatOpened(root);
-        }, 100);
+        }, 80);
+        setTimeout(function () {
+          afterChatOpened(root);
+        }, 200);
       }, true);
       function suppressDuplicateStartBtns() {
         dedupeStartBtnsFromRoot(root);
+        hideStockChromeFromRoot(root);
         ensureVersionBadgesFromRoot(root);
       }
       var runAfterDomChange = debounce(function () {
-        unhookNewStartBtnsFromRoot(root);
+        // Do not clone/strip startBtn — that breaks open + message load
         applyRightAlignFromRoot(root);
         applyStartBtnThemeFromRoot(root);
+        hideStockChromeFromRoot(root);
         ensureVersionBadgesFromRoot(root);
         attachShadowObserversUnder(root, function () {
           suppressDuplicateStartBtns();
@@ -752,9 +810,9 @@
       }, 40);
       var runAfterResize = debounce(function () {
         suppressDuplicateStartBtns();
-        stripStartBtnListenersFromRoot(root, true);
         applyRightAlignFromRoot(root);
         applyStartBtnThemeFromRoot(root);
+        hideStockChromeFromRoot(root);
         ensureVersionBadgesFromRoot(root);
         attachShadowObserversUnder(root, function () {
           suppressDuplicateStartBtns();
@@ -763,8 +821,8 @@
       }, 120);
       applyRightAlignFromRoot(root);
       suppressDuplicateStartBtns();
-      stripStartBtnListenersFromRoot(root, true);
       applyStartBtnThemeFromRoot(root);
+      hideStockChromeFromRoot(root);
       ensureVersionBadgesFromRoot(root);
       attachShadowObserversUnder(root, function () {
         suppressDuplicateStartBtns();
