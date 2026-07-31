@@ -62,6 +62,15 @@
 })();
 (function () {
     /* Иконка с кнопки: Icon button.svg → data-url для фона startBtn внутри Shadow DOM */
+    /* Synced from scripts/github-config.json by Ship-GitHubChanges.ps1 */
+    var MK_WIDGET_VERSION = "1.0.0"; // mk-widget-version
+    var MK_SHOW_WIDGET_VERSION = true; // mk-show-widget-version
+    if (typeof window.mkChat24WidgetVersion === "string" && window.mkChat24WidgetVersion) {
+      MK_WIDGET_VERSION = window.mkChat24WidgetVersion;
+    }
+    if (typeof window.mkChat24ShowWidgetVersion === "boolean") {
+      MK_SHOW_WIDGET_VERSION = window.mkChat24ShowWidgetVersion;
+    }
     var MK_START_BTN_SVG =
       '<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">' +
       '<mask id="path-1-inside-1_mk" fill="white">' +
@@ -536,12 +545,145 @@
           }
         }, 200);
       }
+      function ensureVersionBadgeOnChat(onlineChat) {
+        if (!onlineChat || !MK_SHOW_WIDGET_VERSION) return;
+        if (onlineChat.classList && onlineChat.classList.contains("online-chat--collapsed")) {
+          var old = onlineChat.querySelector("#mk-widget-version-badge");
+          if (old && old.parentNode) old.parentNode.removeChild(old);
+          return;
+        }
+        var badge = onlineChat.querySelector("#mk-widget-version-badge");
+        if (!badge) {
+          badge = document.createElement("div");
+          badge.id = "mk-widget-version-badge";
+          badge.setAttribute("data-mk-widget-version", "1");
+          badge.style.cssText =
+            "position:absolute!important;top:6px!important;left:8px!important;z-index:2147483647!important;" +
+            "font:600 10px/1.2 system-ui,sans-serif!important;color:rgba(0,0,0,0.55)!important;" +
+            "background:rgba(255,255,255,0.92)!important;border:1px solid rgba(0,0,0,0.08)!important;" +
+            "border-radius:4px!important;padding:3px 6px!important;pointer-events:none!important;" +
+            "box-shadow:0 1px 4px rgba(0,0,0,0.08)!important;";
+          var header =
+            onlineChat.querySelector('[class*="header"]') ||
+            onlineChat.querySelector('[class*="Header"]') ||
+            onlineChat.firstElementChild;
+          if (header && header.appendChild && header !== onlineChat) {
+            try {
+              if (window.getComputedStyle(header).position === "static") {
+                header.style.position = "relative";
+              }
+            } catch (ePos) {}
+            header.appendChild(badge);
+          } else {
+            try {
+              if (window.getComputedStyle(onlineChat).position === "static") {
+                onlineChat.style.position = "relative";
+              }
+            } catch (ePos2) {}
+            onlineChat.appendChild(badge);
+          }
+        }
+        badge.textContent = "v" + MK_WIDGET_VERSION;
+      }
+      function ensureVersionBadgesInShadow(shadowRoot) {
+        if (!shadowRoot) return;
+        var chats = shadowRoot.querySelectorAll(".online-chat");
+        var i;
+        for (i = 0; i < chats.length; i++) ensureVersionBadgeOnChat(chats[i]);
+        var el = shadowRoot.firstElementChild;
+        while (el) {
+          if (el.shadowRoot) ensureVersionBadgesInShadow(el.shadowRoot);
+          el = el.nextElementSibling;
+        }
+      }
+      function ensureVersionBadgesFromRoot(origin) {
+        function walk(node) {
+          if (!node) return;
+          if (node.shadowRoot) ensureVersionBadgesInShadow(node.shadowRoot);
+          var c = node.firstElementChild;
+          while (c) {
+            walk(c);
+            c = c.nextElementSibling;
+          }
+        }
+        walk(origin);
+      }
+      function forceChatContentPaint(onlineChat) {
+        if (!onlineChat) return;
+        try {
+          onlineChat.style.setProperty("visibility", "visible", "important");
+          onlineChat.style.setProperty("opacity", "1", "important");
+          void onlineChat.offsetHeight;
+          var nodes = onlineChat.querySelectorAll(
+            '[class*="message"],[class*="Message"],[class*="scroll"],[class*="Scroll"],[class*="content"],[class*="Content"],ul,ol'
+          );
+          var i;
+          for (i = 0; i < nodes.length; i++) {
+            try {
+              void nodes[i].offsetHeight;
+              if (typeof nodes[i].scrollTop === "number") {
+                var prev = nodes[i].scrollTop;
+                nodes[i].scrollTop = prev + 1;
+                nodes[i].scrollTop = prev;
+              }
+            } catch (ePaint) {}
+          }
+        } catch (ePaint2) {}
+      }
+      function forceOpenChatsPaintInShadow(shadowRoot) {
+        if (!shadowRoot) return;
+        var chats = shadowRoot.querySelectorAll(".online-chat:not(.online-chat--collapsed)");
+        var i;
+        for (i = 0; i < chats.length; i++) forceChatContentPaint(chats[i]);
+        var el = shadowRoot.firstElementChild;
+        while (el) {
+          if (el.shadowRoot) forceOpenChatsPaintInShadow(el.shadowRoot);
+          el = el.nextElementSibling;
+        }
+      }
+      function forceOpenChatsPaintFromRoot(origin) {
+        function walk(node) {
+          if (!node) return;
+          if (node.shadowRoot) forceOpenChatsPaintInShadow(node.shadowRoot);
+          var c = node.firstElementChild;
+          while (c) {
+            walk(c);
+            c = c.nextElementSibling;
+          }
+        }
+        walk(origin);
+      }
+      function afterChatOpened(origin) {
+        applyStartOpenFromRoot(origin);
+        applyRightAlignFromRoot(origin);
+        ensureVersionBadgesFromRoot(origin);
+        refreshMobileChatLayout();
+        forceOpenChatsPaintFromRoot(origin);
+        if (typeof window.requestAnimationFrame === "function") {
+          window.requestAnimationFrame(function () {
+            applyRightAlignFromRoot(origin);
+            ensureVersionBadgesFromRoot(origin);
+            refreshMobileChatLayout();
+            forceOpenChatsPaintFromRoot(origin);
+          });
+        }
+        setTimeout(function () {
+          ensureVersionBadgesFromRoot(origin);
+          refreshMobileChatLayout();
+          forceOpenChatsPaintFromRoot(origin);
+        }, 120);
+        setTimeout(function () {
+          refreshMobileChatLayout();
+          forceOpenChatsPaintFromRoot(origin);
+        }, 350);
+      }
       function processShadowCollapseChat(shadowRoot) {
         if (!shadowRoot) return;
         var onlineChat = shadowRoot.querySelector(".online-chat");
         if (onlineChat) {
           onlineChat.classList.add("online-chat--collapsed");
           alignOnlineChat(onlineChat);
+          ensureVersionBadgeOnChat(onlineChat);
         }
         var el = shadowRoot.firstElementChild;
         while (el) {
@@ -576,25 +718,22 @@
           return;
         }
         if (!isStartBtnClick(evt)) return;
+        // Keep native Chat2Desk open handlers — only enhance layout after open
         setTimeout(function () {
-          applyStartOpenFromRoot(root);
-          applyRightAlignFromRoot(root);
-          refreshMobileChatLayout();
-          if (typeof window.requestAnimationFrame === "function") {
-            window.requestAnimationFrame(function () {
-              applyRightAlignFromRoot(root);
-              refreshMobileChatLayout();
-            });
-          }
+          afterChatOpened(root);
         }, 0);
+        setTimeout(function () {
+          afterChatOpened(root);
+        }, 100);
       }, true);
       function suppressDuplicateStartBtns() {
         dedupeStartBtnsFromRoot(root);
+        ensureVersionBadgesFromRoot(root);
       }
       var runAfterDomChange = debounce(function () {
-        unhookNewStartBtnsFromRoot(root);
         applyRightAlignFromRoot(root);
         applyStartBtnThemeFromRoot(root);
+        ensureVersionBadgesFromRoot(root);
         attachShadowObserversUnder(root, function () {
           suppressDuplicateStartBtns();
           runAfterDomChange();
@@ -602,9 +741,9 @@
       }, 40);
       var runAfterResize = debounce(function () {
         suppressDuplicateStartBtns();
-        stripStartBtnListenersFromRoot(root, true);
         applyRightAlignFromRoot(root);
         applyStartBtnThemeFromRoot(root);
+        ensureVersionBadgesFromRoot(root);
         attachShadowObserversUnder(root, function () {
           suppressDuplicateStartBtns();
           runAfterDomChange();
@@ -612,18 +751,48 @@
       }, 120);
       applyRightAlignFromRoot(root);
       suppressDuplicateStartBtns();
-      stripStartBtnListenersFromRoot(root, true);
       applyStartBtnThemeFromRoot(root);
+      ensureVersionBadgesFromRoot(root);
       attachShadowObserversUnder(root, function () {
         suppressDuplicateStartBtns();
         runAfterDomChange();
       });
+      var afterOpenTimer = null;
+      function scheduleAfterChatOpened() {
+        clearTimeout(afterOpenTimer);
+        afterOpenTimer = setTimeout(function () {
+          afterChatOpened(root);
+        }, 40);
+      }
       if (typeof MutationObserver !== "undefined") {
-        var alignObserver = new MutationObserver(function () {
+        var alignObserver = new MutationObserver(function (mutations) {
+          var needOpenFix = false;
+          var mi;
+          for (mi = 0; mi < mutations.length; mi++) {
+            var m = mutations[mi];
+            if (m.type === "attributes" && m.attributeName === "class" && m.target && m.target.classList) {
+              if (
+                m.target.classList.contains("online-chat") &&
+                !m.target.classList.contains("online-chat--collapsed")
+              ) {
+                var prev = m.oldValue || "";
+                if (prev.indexOf("online-chat--collapsed") !== -1) {
+                  needOpenFix = true;
+                }
+              }
+            }
+          }
           suppressDuplicateStartBtns();
           runAfterDomChange();
+          if (needOpenFix) scheduleAfterChatOpened();
         });
-        alignObserver.observe(root, { childList: true, subtree: true });
+        alignObserver.observe(root, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ["class"],
+          attributeOldValue: true
+        });
       }
       if (typeof window.ResizeObserver !== "undefined") {
         var ro = new ResizeObserver(function () {

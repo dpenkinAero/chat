@@ -270,6 +270,12 @@
       'pointer-events:none!important;' +
       'caret-color:transparent!important;' +
       '}' +
+      '.chat24-container .online-chat:not(.online-chat--collapsed) #mk-widget-version-badge{' +
+      'position:absolute!important;' +
+      'top:6px!important;' +
+      'left:8px!important;' +
+      'z-index:2147483647!important;' +
+      '}' +
       '}' +
       '@media(min-width:1024px){' +
       '.chat24-container .widget .startBtn.startBtn--inside,' +
