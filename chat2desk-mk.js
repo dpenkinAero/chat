@@ -62,23 +62,6 @@
 })();
 (function () {
     /* Иконка с кнопки: Icon button.svg → data-url для фона startBtn внутри Shadow DOM */
-    /* Synced from scripts/github-config.json by Ship-GitHubChanges.ps1 */
-    var MK_WIDGET_VERSION = "1.0.2"; // mk-widget-version
-    var MK_SHOW_WIDGET_VERSION = true; // mk-show-widget-version
-    if (typeof window.mkChat24WidgetVersion === "string" && window.mkChat24WidgetVersion) {
-      MK_WIDGET_VERSION = window.mkChat24WidgetVersion;
-    }
-    if (typeof window.mkChat24ShowWidgetVersion === "boolean") {
-      MK_SHOW_WIDGET_VERSION = window.mkChat24ShowWidgetVersion;
-    }
-    try {
-      console.log(
-        "[chat2desk-mk] widget version:",
-        MK_WIDGET_VERSION,
-        "| showBadge:",
-        MK_SHOW_WIDGET_VERSION
-      );
-    } catch (eLog) {}
     var MK_START_BTN_SVG =
       '<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">' +
       '<mask id="path-1-inside-1_mk" fill="white">' +
@@ -143,8 +126,8 @@
     }
     function buildStartBtnDedupeCss(lightDomScope) {
       var s = lightDomScope
-        ? "#chat24-root .chat24-container .startBtn[data-mk-duplicate-startbtn='1'], #chat24-widget-root .chat24-container .startBtn[data-mk-duplicate-startbtn='1']"
-        : ".chat24-container .startBtn[data-mk-duplicate-startbtn='1']";
+        ? "#chat24-root .chat24-container .startBtn:not([data-mk-primary-startbtn='1']), #chat24-widget-root .chat24-container .startBtn:not([data-mk-primary-startbtn='1'])"
+        : ".chat24-container .startBtn:not([data-mk-primary-startbtn='1'])";
       return (
         s +
         "{" +
@@ -164,9 +147,6 @@
       if (!shadowRoot) return;
       var css =
         ".online-chat{border-radius:0!important;border:1px solid rgba(0,0,0,0.12)!important;box-shadow:none!important;}" +
-        ".chat24-container .online-chat.online-chat--collapsed{" +
-        "display:none!important;visibility:hidden!important;pointer-events:none!important;" +
-        "width:0!important;height:0!important;overflow:hidden!important;opacity:0!important;}" +
         ".chat24-container .online-chat:not(.online-chat--collapsed)~div .startBtn," +
         ".chat24-container .online-chat:not(.online-chat--collapsed)~.startBtn{" +
         "display:none!important;visibility:hidden!important;pointer-events:none!important;}" +
@@ -340,12 +320,11 @@
           var btns = containers[ci].querySelectorAll(".startBtn");
           if (btns.length === 0) continue;
           btns[0].setAttribute("data-mk-primary-startbtn", "1");
-          btns[0].removeAttribute("data-mk-duplicate-startbtn");
           if (btns.length <= 1) continue;
           var i;
-          for (i = 1; i < btns.length; i++) {
-            btns[i].setAttribute("data-mk-duplicate-startbtn", "1");
-            btns[i].removeAttribute("data-mk-primary-startbtn");
+          for (i = btns.length - 1; i >= 1; i--) {
+            var extra = btns[i];
+            if (extra && extra.parentNode) extra.parentNode.removeChild(extra);
           }
         }
         var el = shadowRoot.firstElementChild;
@@ -452,14 +431,6 @@
         var onlineChat = shadowRoot.querySelector(".online-chat");
         if (onlineChat) {
           onlineChat.classList.remove("online-chat--collapsed");
-          try {
-            onlineChat.style.removeProperty("display");
-            onlineChat.style.removeProperty("pointer-events");
-            onlineChat.style.removeProperty("visibility");
-            onlineChat.style.removeProperty("opacity");
-            onlineChat.style.removeProperty("width");
-            onlineChat.style.removeProperty("height");
-          } catch (eOpen) {}
           alignOnlineChat(onlineChat);
         }
         var el = shadowRoot.firstElementChild;
@@ -480,298 +451,70 @@
         }
         walk(origin);
       }
-      function blurActiveInsideChat(origin) {
-        try {
-          var active = document.activeElement;
-          if (active && active !== document.body && typeof active.blur === "function") {
-            var tag = (active.tagName || "").toLowerCase();
-            if (tag === "input" || tag === "textarea" || active.isContentEditable) {
-              active.blur();
-            }
-          }
-        } catch (eBlur1) {}
-        function blurInShadow(shadowRoot) {
-          if (!shadowRoot) return;
-          try {
-            var focused = shadowRoot.activeElement;
-            if (focused && typeof focused.blur === "function") focused.blur();
-          } catch (eBlur2) {}
-          var inputs = shadowRoot.querySelectorAll("input, textarea, [contenteditable='true']");
-          var i;
-          for (i = 0; i < inputs.length; i++) {
-            try {
-              if (typeof inputs[i].blur === "function") inputs[i].blur();
-            } catch (eBlur3) {}
-          }
-          var el = shadowRoot.firstElementChild;
-          while (el) {
-            if (el.shadowRoot) blurInShadow(el.shadowRoot);
-            el = el.nextElementSibling;
-          }
-        }
-        function walk(node) {
-          if (!node) return;
-          if (node.shadowRoot) blurInShadow(node.shadowRoot);
-          var c = node.firstElementChild;
-          while (c) {
-            walk(c);
-            c = c.nextElementSibling;
-          }
-        }
-        walk(origin);
-        try {
-          if (document.activeElement && typeof document.activeElement.blur === "function") {
-            document.activeElement.blur();
-          }
-        } catch (eBlur4) {}
-      }
-      function refreshMobileChatLayout() {
-        if (typeof window.chat2deskMkApply === "function") {
-          try {
-            window.chat2deskMkApply();
-          } catch (eApply) {}
-        }
-        try {
-          window.dispatchEvent(new Event("resize"));
-        } catch (eResize) {}
-        if (typeof window.requestAnimationFrame === "function") {
-          window.requestAnimationFrame(function () {
-            if (typeof window.chat2deskMkApply === "function") {
-              try {
-                window.chat2deskMkApply();
-              } catch (eApply2) {}
-            }
-          });
-        }
-        setTimeout(function () {
-          if (typeof window.chat2deskMkApply === "function") {
-            try {
-              window.chat2deskMkApply();
-            } catch (eApply3) {}
-          }
-          try {
-            window.dispatchEvent(new Event("resize"));
-          } catch (eResize2) {}
-        }, 50);
-        setTimeout(function () {
-          if (typeof window.chat2deskMkApply === "function") {
-            try {
-              window.chat2deskMkApply();
-            } catch (eApply4) {}
-          }
-        }, 200);
-      }
-      function ensureVersionBadgeOnChat(onlineChat) {
-        if (!onlineChat || !MK_SHOW_WIDGET_VERSION) return;
-        if (onlineChat.classList && onlineChat.classList.contains("online-chat--collapsed")) {
-          var old = onlineChat.querySelector("#mk-widget-version-badge");
-          if (old && old.parentNode) old.parentNode.removeChild(old);
-          return;
-        }
-        var badge = onlineChat.querySelector("#mk-widget-version-badge");
-        if (!badge) {
-          badge = document.createElement("div");
-          badge.id = "mk-widget-version-badge";
-          badge.setAttribute("data-mk-widget-version", "1");
-          badge.style.cssText =
-            "position:absolute!important;top:6px!important;left:8px!important;z-index:2147483647!important;" +
-            "font:600 10px/1.2 system-ui,sans-serif!important;color:rgba(0,0,0,0.55)!important;" +
-            "background:rgba(255,255,255,0.92)!important;border:1px solid rgba(0,0,0,0.08)!important;" +
-            "border-radius:4px!important;padding:3px 6px!important;pointer-events:none!important;" +
-            "box-shadow:0 1px 4px rgba(0,0,0,0.08)!important;";
-          var header =
-            onlineChat.querySelector('[class*="header"]') ||
-            onlineChat.querySelector('[class*="Header"]') ||
-            onlineChat.firstElementChild;
-          if (header && header.appendChild && header !== onlineChat) {
-            try {
-              if (window.getComputedStyle(header).position === "static") {
-                header.style.position = "relative";
-              }
-            } catch (ePos) {}
-            header.appendChild(badge);
-          } else {
-            try {
-              if (window.getComputedStyle(onlineChat).position === "static") {
-                onlineChat.style.position = "relative";
-              }
-            } catch (ePos2) {}
-            onlineChat.appendChild(badge);
-          }
-        }
-        badge.textContent = "v" + MK_WIDGET_VERSION;
-      }
-      function ensureVersionBadgesInShadow(shadowRoot) {
-        if (!shadowRoot) return;
-        var chats = shadowRoot.querySelectorAll(".online-chat");
-        var i;
-        for (i = 0; i < chats.length; i++) ensureVersionBadgeOnChat(chats[i]);
-        var el = shadowRoot.firstElementChild;
-        while (el) {
-          if (el.shadowRoot) ensureVersionBadgesInShadow(el.shadowRoot);
-          el = el.nextElementSibling;
-        }
-      }
-      function ensureVersionBadgesFromRoot(origin) {
-        function walk(node) {
-          if (!node) return;
-          if (node.shadowRoot) ensureVersionBadgesInShadow(node.shadowRoot);
-          var c = node.firstElementChild;
-          while (c) {
-            walk(c);
-            c = c.nextElementSibling;
-          }
-        }
-        walk(origin);
-      }
-      function forceChatContentPaint(onlineChat) {
-        if (!onlineChat) return;
-        try {
-          onlineChat.style.setProperty("visibility", "visible", "important");
-          onlineChat.style.setProperty("opacity", "1", "important");
-          void onlineChat.offsetHeight;
-          var nodes = onlineChat.querySelectorAll(
-            '[class*="message"],[class*="Message"],[class*="scroll"],[class*="Scroll"],[class*="content"],[class*="Content"],ul,ol'
-          );
-          var i;
-          for (i = 0; i < nodes.length; i++) {
-            try {
-              void nodes[i].offsetHeight;
-              if (typeof nodes[i].scrollTop === "number") {
-                var prev = nodes[i].scrollTop;
-                nodes[i].scrollTop = prev + 1;
-                nodes[i].scrollTop = prev;
-              }
-            } catch (ePaint) {}
-          }
-        } catch (ePaint2) {}
-      }
-      function forceOpenChatsPaintInShadow(shadowRoot) {
-        if (!shadowRoot) return;
-        var chats = shadowRoot.querySelectorAll(".online-chat:not(.online-chat--collapsed)");
-        var i;
-        for (i = 0; i < chats.length; i++) forceChatContentPaint(chats[i]);
-        var el = shadowRoot.firstElementChild;
-        while (el) {
-          if (el.shadowRoot) forceOpenChatsPaintInShadow(el.shadowRoot);
-          el = el.nextElementSibling;
-        }
-      }
-      function forceOpenChatsPaintFromRoot(origin) {
-        function walk(node) {
-          if (!node) return;
-          if (node.shadowRoot) forceOpenChatsPaintInShadow(node.shadowRoot);
-          var c = node.firstElementChild;
-          while (c) {
-            walk(c);
-            c = c.nextElementSibling;
-          }
-        }
-        walk(origin);
-      }
-      function hideStockChromeInShadow(shadowRoot) {
-        if (!shadowRoot) return;
-        var nodes = shadowRoot.querySelectorAll(
-          ".messengers, .messenger, .messengers--vertical, .messengers--horizontal"
-        );
-        var i;
-        for (i = 0; i < nodes.length; i++) {
-          try {
-            nodes[i].style.setProperty("display", "none", "important");
-            nodes[i].style.setProperty("visibility", "hidden", "important");
-            nodes[i].style.setProperty("pointer-events", "none", "important");
-          } catch (eH) {}
-        }
-        var closes = shadowRoot.querySelectorAll(".close-btn");
-        for (i = 0; i < closes.length; i++) {
-          try {
-            if (closes[i].closest && closes[i].closest(".online-chat")) continue;
-            closes[i].style.setProperty("display", "none", "important");
-            closes[i].style.setProperty("visibility", "hidden", "important");
-            closes[i].style.setProperty("pointer-events", "none", "important");
-          } catch (eC) {}
-        }
-        var el = shadowRoot.firstElementChild;
-        while (el) {
-          if (el.shadowRoot) hideStockChromeInShadow(el.shadowRoot);
-          el = el.nextElementSibling;
-        }
-      }
-      function hideStockChromeFromRoot(origin) {
-        function walk(node) {
-          if (!node) return;
-          if (node.shadowRoot) hideStockChromeInShadow(node.shadowRoot);
-          var c = node.firstElementChild;
-          while (c) {
-            walk(c);
-            c = c.nextElementSibling;
-          }
-        }
-        walk(origin);
-      }
-      function afterChatOpened(origin) {
-        applyStartOpenFromRoot(origin);
-        hideStockChromeFromRoot(origin);
-        applyRightAlignFromRoot(origin);
-        ensureVersionBadgesFromRoot(origin);
-        refreshMobileChatLayout();
-        forceOpenChatsPaintFromRoot(origin);
-        if (typeof window.requestAnimationFrame === "function") {
-          window.requestAnimationFrame(function () {
-            applyStartOpenFromRoot(origin);
-            hideStockChromeFromRoot(origin);
-            applyRightAlignFromRoot(origin);
-            ensureVersionBadgesFromRoot(origin);
-            refreshMobileChatLayout();
-            forceOpenChatsPaintFromRoot(origin);
-          });
-        }
-        setTimeout(function () {
-          applyStartOpenFromRoot(origin);
-          hideStockChromeFromRoot(origin);
-          ensureVersionBadgesFromRoot(origin);
-          refreshMobileChatLayout();
-          forceOpenChatsPaintFromRoot(origin);
-        }, 120);
-        setTimeout(function () {
-          applyStartOpenFromRoot(origin);
-          hideStockChromeFromRoot(origin);
-          refreshMobileChatLayout();
-          forceOpenChatsPaintFromRoot(origin);
-          try {
-            window.dispatchEvent(new Event("resize"));
-          } catch (eR) {}
-        }, 350);
-      }
-      function clearOnlineChatInlineLayout(node) {
-        if (!node || !node.style || !node.style.removeProperty) return;
-        try {
-          node.style.removeProperty("top");
-          node.style.removeProperty("height");
-          node.style.removeProperty("left");
-          node.style.removeProperty("width");
-          node.style.removeProperty("right");
-          node.style.removeProperty("max-width");
-          node.style.removeProperty("visibility");
-          node.style.removeProperty("opacity");
-          node.style.setProperty("pointer-events", "none", "important");
-          node.style.setProperty("display", "none", "important");
-        } catch (eClr) {}
-      }
       function processShadowCollapseChat(shadowRoot) {
         if (!shadowRoot) return;
         var onlineChat = shadowRoot.querySelector(".online-chat");
         if (onlineChat) {
           onlineChat.classList.add("online-chat--collapsed");
-          clearOnlineChatInlineLayout(onlineChat);
           alignOnlineChat(onlineChat);
-          ensureVersionBadgeOnChat(onlineChat);
+          // Drop leftover mobile inline box so collapsed chat cannot block page clicks
+          try {
+            onlineChat.style.removeProperty("top");
+            onlineChat.style.removeProperty("height");
+            onlineChat.style.removeProperty("left");
+            onlineChat.style.removeProperty("width");
+            onlineChat.style.removeProperty("right");
+            onlineChat.style.removeProperty("max-width");
+          } catch (eClr) {}
         }
         var el = shadowRoot.firstElementChild;
         while (el) {
           if (el.shadowRoot) processShadowCollapseChat(el.shadowRoot);
           el = el.nextElementSibling;
         }
+      }
+      function blurChatInputsFromRoot(origin) {
+        try {
+          var active = document.activeElement;
+          if (active && typeof active.blur === "function") {
+            var tag = (active.tagName || "").toLowerCase();
+            if (tag === "input" || tag === "textarea" || active.isContentEditable) {
+              active.blur();
+            }
+          }
+        } catch (e1) {}
+        function blurShadow(shadowRoot) {
+          if (!shadowRoot) return;
+          try {
+            if (shadowRoot.activeElement && typeof shadowRoot.activeElement.blur === "function") {
+              shadowRoot.activeElement.blur();
+            }
+          } catch (e2) {}
+          var inputs = shadowRoot.querySelectorAll(
+            ".online-chat input, .online-chat textarea, .online-chat [contenteditable='true']"
+          );
+          var i;
+          for (i = 0; i < inputs.length; i++) {
+            try {
+              if (typeof inputs[i].blur === "function") inputs[i].blur();
+            } catch (e3) {}
+          }
+          var el = shadowRoot.firstElementChild;
+          while (el) {
+            if (el.shadowRoot) blurShadow(el.shadowRoot);
+            el = el.nextElementSibling;
+          }
+        }
+        function walk(node) {
+          if (!node) return;
+          if (node.shadowRoot) blurShadow(node.shadowRoot);
+          var c = node.firstElementChild;
+          while (c) {
+            walk(c);
+            c = c.nextElementSibling;
+          }
+        }
+        walk(origin);
       }
       function applyCloseCollapseFromRoot(origin) {
         function walk(node) {
@@ -784,56 +527,46 @@
           }
         }
         walk(origin);
-        blurActiveInsideChat(origin);
+        blurChatInputsFromRoot(origin);
       }
       root.addEventListener("click", function (evt) {
         if (evt && evt.isTrusted === false) return;
         if (isCloseBtnClick(evt)) {
-          // Only handle close inside online-chat (MK header close)
-          var path = typeof evt.composedPath === "function" ? evt.composedPath() : [evt.target];
-          var inOnlineChat = false;
-          var pi;
-          for (pi = 0; pi < path.length; pi++) {
-            var pn = path[pi];
-            if (pn && pn.classList && pn.classList.contains("online-chat")) {
-              inOnlineChat = true;
-              break;
-            }
-          }
-          if (!inOnlineChat) return;
-          blurActiveInsideChat(root);
+          blurChatInputsFromRoot(root);
           setTimeout(function () {
             applyCloseCollapseFromRoot(root);
-            blurActiveInsideChat(root);
+            blurChatInputsFromRoot(root);
           }, 0);
-          setTimeout(function () {
-            blurActiveInsideChat(root);
-          }, 80);
           return;
         }
         if (!isStartBtnClick(evt)) return;
-        // Let Chat2Desk open natively (needed for messages), then polish MK UI
         setTimeout(function () {
-          afterChatOpened(root);
+          applyStartOpenFromRoot(root);
+          applyRightAlignFromRoot(root);
+          if (typeof window.chat2deskMkApply === "function") {
+            try {
+              window.chat2deskMkApply();
+            } catch (eApply) {}
+          }
+          if (typeof window.requestAnimationFrame === "function") {
+            window.requestAnimationFrame(function () {
+              applyRightAlignFromRoot(root);
+              if (typeof window.chat2deskMkApply === "function") {
+                try {
+                  window.chat2deskMkApply();
+                } catch (eApply2) {}
+              }
+            });
+          }
         }, 0);
-        setTimeout(function () {
-          afterChatOpened(root);
-        }, 80);
-        setTimeout(function () {
-          afterChatOpened(root);
-        }, 200);
       }, true);
       function suppressDuplicateStartBtns() {
         dedupeStartBtnsFromRoot(root);
-        hideStockChromeFromRoot(root);
-        ensureVersionBadgesFromRoot(root);
       }
       var runAfterDomChange = debounce(function () {
-        // Do not clone/strip startBtn — that breaks open + message load
+        unhookNewStartBtnsFromRoot(root);
         applyRightAlignFromRoot(root);
         applyStartBtnThemeFromRoot(root);
-        hideStockChromeFromRoot(root);
-        ensureVersionBadgesFromRoot(root);
         attachShadowObserversUnder(root, function () {
           suppressDuplicateStartBtns();
           runAfterDomChange();
@@ -841,10 +574,9 @@
       }, 40);
       var runAfterResize = debounce(function () {
         suppressDuplicateStartBtns();
+        stripStartBtnListenersFromRoot(root, true);
         applyRightAlignFromRoot(root);
         applyStartBtnThemeFromRoot(root);
-        hideStockChromeFromRoot(root);
-        ensureVersionBadgesFromRoot(root);
         attachShadowObserversUnder(root, function () {
           suppressDuplicateStartBtns();
           runAfterDomChange();
@@ -852,51 +584,18 @@
       }, 120);
       applyRightAlignFromRoot(root);
       suppressDuplicateStartBtns();
+      stripStartBtnListenersFromRoot(root, true);
       applyStartBtnThemeFromRoot(root);
-      hideStockChromeFromRoot(root);
-      ensureVersionBadgesFromRoot(root);
-      // Safety: collapsed chat must never steal page clicks
-      applyCloseCollapseFromRoot(root);
       attachShadowObserversUnder(root, function () {
         suppressDuplicateStartBtns();
         runAfterDomChange();
       });
-      var afterOpenTimer = null;
-      function scheduleAfterChatOpened() {
-        clearTimeout(afterOpenTimer);
-        afterOpenTimer = setTimeout(function () {
-          afterChatOpened(root);
-        }, 40);
-      }
       if (typeof MutationObserver !== "undefined") {
-        var alignObserver = new MutationObserver(function (mutations) {
-          var needOpenFix = false;
-          var mi;
-          for (mi = 0; mi < mutations.length; mi++) {
-            var m = mutations[mi];
-            if (m.type === "attributes" && m.attributeName === "class" && m.target && m.target.classList) {
-              if (
-                m.target.classList.contains("online-chat") &&
-                !m.target.classList.contains("online-chat--collapsed")
-              ) {
-                var prev = m.oldValue || "";
-                if (prev.indexOf("online-chat--collapsed") !== -1) {
-                  needOpenFix = true;
-                }
-              }
-            }
-          }
+        var alignObserver = new MutationObserver(function () {
           suppressDuplicateStartBtns();
           runAfterDomChange();
-          if (needOpenFix) scheduleAfterChatOpened();
         });
-        alignObserver.observe(root, {
-          childList: true,
-          subtree: true,
-          attributes: true,
-          attributeFilter: ["class"],
-          attributeOldValue: true
-        });
+        alignObserver.observe(root, { childList: true, subtree: true });
       }
       if (typeof window.ResizeObserver !== "undefined") {
         var ro = new ResizeObserver(function () {
