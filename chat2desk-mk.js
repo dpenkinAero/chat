@@ -673,8 +673,13 @@
           forceOpenChatsPaintFromRoot(origin);
         }, 120);
         setTimeout(function () {
+          // Nudge Chat2Desk to paint message list after SPA navigation
+          applyStartOpenFromRoot(origin);
           refreshMobileChatLayout();
           forceOpenChatsPaintFromRoot(origin);
+          try {
+            window.dispatchEvent(new Event("resize"));
+          } catch (eR) {}
         }, 350);
       }
       function processShadowCollapseChat(shadowRoot) {
@@ -718,7 +723,12 @@
           return;
         }
         if (!isStartBtnClick(evt)) return;
-        // Keep native Chat2Desk open handlers — only enhance layout after open
+        // Block stock Chat2Desk open (messengers + default close), open online-chat ourselves
+        try {
+          evt.preventDefault();
+          evt.stopPropagation();
+          if (typeof evt.stopImmediatePropagation === "function") evt.stopImmediatePropagation();
+        } catch (eStop) {}
         setTimeout(function () {
           afterChatOpened(root);
         }, 0);
@@ -731,6 +741,7 @@
         ensureVersionBadgesFromRoot(root);
       }
       var runAfterDomChange = debounce(function () {
+        unhookNewStartBtnsFromRoot(root);
         applyRightAlignFromRoot(root);
         applyStartBtnThemeFromRoot(root);
         ensureVersionBadgesFromRoot(root);
@@ -741,6 +752,7 @@
       }, 40);
       var runAfterResize = debounce(function () {
         suppressDuplicateStartBtns();
+        stripStartBtnListenersFromRoot(root, true);
         applyRightAlignFromRoot(root);
         applyStartBtnThemeFromRoot(root);
         ensureVersionBadgesFromRoot(root);
@@ -751,6 +763,7 @@
       }, 120);
       applyRightAlignFromRoot(root);
       suppressDuplicateStartBtns();
+      stripStartBtnListenersFromRoot(root, true);
       applyStartBtnThemeFromRoot(root);
       ensureVersionBadgesFromRoot(root);
       attachShadowObserversUnder(root, function () {
