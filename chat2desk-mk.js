@@ -62,6 +62,12 @@
 })();
 (function () {
     /* Иконка с кнопки: Icon button.svg → data-url для фона startBtn внутри Shadow DOM */
+    /* Synced from scripts/github-config.json by Ship-GitHubChanges.ps1 */
+    var MK_WIDGET_VERSION = "1.1.0"; // mk-widget-version
+    var MK_SHOW_WIDGET_VERSION = true; // mk-show-widget-version
+    try {
+      console.log("[chat2desk-mk] version:", MK_WIDGET_VERSION);
+    } catch (eLog) {}
     var MK_START_BTN_SVG =
       '<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">' +
       '<mask id="path-1-inside-1_mk" fill="white">' +
@@ -388,7 +394,6 @@
           watchedShadowList.push(shadowRoot);
         }
         var moSr = new MutationObserver(function () {
-          suppressDuplicateStartBtns();
           onMutation();
         });
         moSr.observe(shadowRoot, { childList: true, subtree: true });
@@ -457,7 +462,6 @@
         if (onlineChat) {
           onlineChat.classList.add("online-chat--collapsed");
           alignOnlineChat(onlineChat);
-          // Drop leftover mobile inline box so collapsed chat cannot block page clicks
           try {
             onlineChat.style.removeProperty("top");
             onlineChat.style.removeProperty("height");
@@ -490,9 +494,7 @@
               shadowRoot.activeElement.blur();
             }
           } catch (e2) {}
-          var inputs = shadowRoot.querySelectorAll(
-            ".online-chat input, .online-chat textarea, .online-chat [contenteditable='true']"
-          );
+          var inputs = shadowRoot.querySelectorAll(".online-chat input, .online-chat textarea");
           var i;
           for (i = 0; i < inputs.length; i++) {
             try {
@@ -529,13 +531,54 @@
         walk(origin);
         blurChatInputsFromRoot(origin);
       }
+      function ensureVersionBadge(onlineChat) {
+        if (!MK_SHOW_WIDGET_VERSION || !onlineChat) return;
+        if (onlineChat.classList.contains("online-chat--collapsed")) {
+          var old = onlineChat.querySelector("#mk-widget-version-badge");
+          if (old && old.parentNode) old.parentNode.removeChild(old);
+          return;
+        }
+        var badge = onlineChat.querySelector("#mk-widget-version-badge");
+        if (!badge) {
+          badge = document.createElement("div");
+          badge.id = "mk-widget-version-badge";
+          badge.style.cssText =
+            "position:absolute;top:6px;left:8px;z-index:10;font:600 10px/1.2 system-ui,sans-serif;" +
+            "color:rgba(0,0,0,.55);background:rgba(255,255,255,.9);border:1px solid rgba(0,0,0,.08);" +
+            "border-radius:4px;padding:2px 6px;pointer-events:none;";
+          onlineChat.appendChild(badge);
+        }
+        badge.textContent = "v" + MK_WIDGET_VERSION;
+      }
+      function ensureVersionBadgesFromRoot(origin) {
+        function walkShadow(shadowRoot) {
+          if (!shadowRoot) return;
+          var chats = shadowRoot.querySelectorAll(".online-chat");
+          var i;
+          for (i = 0; i < chats.length; i++) ensureVersionBadge(chats[i]);
+          var el = shadowRoot.firstElementChild;
+          while (el) {
+            if (el.shadowRoot) walkShadow(el.shadowRoot);
+            el = el.nextElementSibling;
+          }
+        }
+        function walk(node) {
+          if (!node) return;
+          if (node.shadowRoot) walkShadow(node.shadowRoot);
+          var c = node.firstElementChild;
+          while (c) {
+            walk(c);
+            c = c.nextElementSibling;
+          }
+        }
+        walk(origin);
+      }
       root.addEventListener("click", function (evt) {
         if (evt && evt.isTrusted === false) return;
         if (isCloseBtnClick(evt)) {
           blurChatInputsFromRoot(root);
           setTimeout(function () {
             applyCloseCollapseFromRoot(root);
-            blurChatInputsFromRoot(root);
           }, 0);
           return;
         }
@@ -543,6 +586,7 @@
         setTimeout(function () {
           applyStartOpenFromRoot(root);
           applyRightAlignFromRoot(root);
+          ensureVersionBadgesFromRoot(root);
           if (typeof window.chat2deskMkApply === "function") {
             try {
               window.chat2deskMkApply();
@@ -551,11 +595,6 @@
           if (typeof window.requestAnimationFrame === "function") {
             window.requestAnimationFrame(function () {
               applyRightAlignFromRoot(root);
-              if (typeof window.chat2deskMkApply === "function") {
-                try {
-                  window.chat2deskMkApply();
-                } catch (eApply2) {}
-              }
             });
           }
         }, 0);
@@ -563,36 +602,29 @@
       function suppressDuplicateStartBtns() {
         dedupeStartBtnsFromRoot(root);
       }
+      // Hot path: NEVER clone/unhook startBtn here — that caused MutationObserver CPU loops
       var runAfterDomChange = debounce(function () {
-        unhookNewStartBtnsFromRoot(root);
         applyRightAlignFromRoot(root);
         applyStartBtnThemeFromRoot(root);
-        attachShadowObserversUnder(root, function () {
-          suppressDuplicateStartBtns();
-          runAfterDomChange();
-        });
-      }, 40);
+        suppressDuplicateStartBtns();
+        ensureVersionBadgesFromRoot(root);
+        attachShadowObserversUnder(root, runAfterDomChange);
+      }, 120);
       var runAfterResize = debounce(function () {
         suppressDuplicateStartBtns();
         stripStartBtnListenersFromRoot(root, true);
         applyRightAlignFromRoot(root);
         applyStartBtnThemeFromRoot(root);
-        attachShadowObserversUnder(root, function () {
-          suppressDuplicateStartBtns();
-          runAfterDomChange();
-        });
-      }, 120);
+        attachShadowObserversUnder(root, runAfterDomChange);
+      }, 200);
       applyRightAlignFromRoot(root);
       suppressDuplicateStartBtns();
       stripStartBtnListenersFromRoot(root, true);
       applyStartBtnThemeFromRoot(root);
-      attachShadowObserversUnder(root, function () {
-        suppressDuplicateStartBtns();
-        runAfterDomChange();
-      });
+      ensureVersionBadgesFromRoot(root);
+      attachShadowObserversUnder(root, runAfterDomChange);
       if (typeof MutationObserver !== "undefined") {
         var alignObserver = new MutationObserver(function () {
-          suppressDuplicateStartBtns();
           runAfterDomChange();
         });
         alignObserver.observe(root, { childList: true, subtree: true });
