@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   window.chat24_token = "e60db27908b5744a25a1e706acb9daff";
   window.chat24_url = "https://livechatv2.chat2desk.com";
   window.chat24_socket_url = "wss://livechatv2.chat2desk.com/widget_ws_new";
@@ -64,7 +64,7 @@
     /* Иконка с кнопки: Icon button.svg → data-url для фона startBtn внутри Shadow DOM */
     /* Synced from scripts/github-config.json by Ship-GitHubChanges.ps1 */
     var MK_WIDGET_VERSION = "1.1.1"; // mk-widget-version
-    var MK_SHOW_WIDGET_VERSION = true; // mk-show-widget-version
+    var MK_SHOW_WIDGET_VERSION = false; // mk-show-widget-version
     try {
       console.log("[chat2desk-mk] version:", MK_WIDGET_VERSION);
     } catch (eLog) {}
