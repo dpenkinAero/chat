@@ -63,7 +63,7 @@
 (function () {
     /* Иконка с кнопки: Icon button.svg → data-url для фона startBtn внутри Shadow DOM */
     /* Synced from scripts/github-config.json by Ship-GitHubChanges.ps1 */
-    var MK_WIDGET_VERSION = "1.1.1"; // mk-widget-version
+    var MK_WIDGET_VERSION = "1.1.2"; // mk-widget-version
     var MK_SHOW_WIDGET_VERSION = false; // mk-show-widget-version
     try {
       console.log("[chat2desk-mk] version:", MK_WIDGET_VERSION);
@@ -527,6 +527,74 @@
         }
         walk(origin);
       }
+      function unlockSiteScroll() {
+        var lockedY = null;
+        function unlockEl(el) {
+          if (!el || !el.style) return;
+          try {
+            var st = el.style;
+            if (st.position === "fixed" && st.top) {
+              var m = /^(-?\d+(?:\.\d+)?)/.exec(st.top);
+              if (m) {
+                lockedY = Math.abs(parseFloat(m[1]));
+              }
+            }
+            var overflowLocked =
+              st.overflow === "hidden" ||
+              st.overflowY === "hidden" ||
+              st.overflowX === "hidden";
+            var fixedLocked = st.position === "fixed";
+            if (overflowLocked || fixedLocked) {
+              st.removeProperty("overflow");
+              st.removeProperty("overflow-x");
+              st.removeProperty("overflow-y");
+              st.removeProperty("position");
+              st.removeProperty("top");
+              st.removeProperty("left");
+              st.removeProperty("right");
+              st.removeProperty("bottom");
+              st.removeProperty("height");
+              st.removeProperty("max-height");
+              st.removeProperty("min-height");
+              st.removeProperty("width");
+              st.removeProperty("max-width");
+              st.removeProperty("min-width");
+            }
+            st.removeProperty("touch-action");
+            st.removeProperty("overscroll-behavior");
+            st.removeProperty("overscroll-behavior-y");
+          } catch (eUnlock) {}
+        }
+        unlockEl(document.documentElement);
+        unlockEl(document.body);
+        try {
+          document.documentElement.classList.remove(
+            "chat24-noscroll",
+            "no-scroll",
+            "overflow-hidden",
+            "overflowHidden"
+          );
+          if (document.body) {
+            document.body.classList.remove(
+              "chat24-noscroll",
+              "no-scroll",
+              "overflow-hidden",
+              "overflowHidden"
+            );
+          }
+        } catch (eCls) {}
+        if (lockedY != null && isFinite(lockedY)) {
+          try {
+            window.scrollTo(0, lockedY);
+          } catch (eScroll) {}
+        }
+      }
+      function unlockSiteScrollSoon() {
+        unlockSiteScroll();
+        setTimeout(unlockSiteScroll, 0);
+        setTimeout(unlockSiteScroll, 60);
+        setTimeout(unlockSiteScroll, 200);
+      }
       function applyCloseCollapseFromRoot(origin) {
         function walk(node) {
           if (!node) return;
@@ -539,6 +607,7 @@
         }
         walk(origin);
         blurChatInputsFromRoot(origin);
+        unlockSiteScrollSoon();
       }
       function ensureVersionBadge(onlineChat) {
         if (!MK_SHOW_WIDGET_VERSION || !onlineChat) return;
@@ -597,6 +666,9 @@
         document.addEventListener("initialize_client", function () {
           refreshMkChatLayoutOnce();
           setTimeout(refreshMkChatLayoutOnce, 80);
+        });
+        document.addEventListener("popups:close", function () {
+          unlockSiteScrollSoon();
         });
       }
       root.addEventListener("click", function (evt) {
