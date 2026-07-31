@@ -199,10 +199,14 @@
       'transform:translateY(-50%)!important;' +
       '-webkit-transform:translateY(-50%)!important;' +
       '}' +
+      /* Keep launcher visible — do NOT display:none the collapsed widget */
       '.chat24-container .widget.widget--collapsed{' +
-      'display:none!important;' +
-      'visibility:hidden!important;' +
-      'pointer-events:none!important;' +
+      'display:block!important;' +
+      'visibility:visible!important;' +
+      'pointer-events:auto!important;' +
+      'width:44px!important;' +
+      'height:44px!important;' +
+      'overflow:visible!important;' +
       '}' +
       mobW +
       '{' +
@@ -372,7 +376,7 @@
       'visibility:visible!important;' +
       'pointer-events:auto!important;' +
       '}' +
-      '.chat24-container .startBtn:not([data-mk-primary-startbtn="1"]){' +
+      '.chat24-container .startBtn[data-mk-duplicate-startbtn="1"]{' +
       'display:none!important;' +
       'visibility:hidden!important;' +
       'pointer-events:none!important;' +
@@ -501,14 +505,14 @@
         continue;
       }
       btns[0].setAttribute('data-mk-primary-startbtn', '1');
+      btns[0].removeAttribute('data-mk-duplicate-startbtn');
       if (btns.length <= 1) {
         continue;
       }
       var i;
-      for (i = btns.length - 1; i >= 1; i--) {
-        if (btns[i] && btns[i].parentNode) {
-          btns[i].parentNode.removeChild(btns[i]);
-        }
+      for (i = 1; i < btns.length; i++) {
+        btns[i].setAttribute('data-mk-duplicate-startbtn', '1');
+        btns[i].removeAttribute('data-mk-primary-startbtn');
       }
     }
     var all = shadowRoot.querySelectorAll('*');
